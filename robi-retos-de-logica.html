@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Robi · Retos de lógica con bloques</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F7F6F2;--panel:#FFFFFF;--line:#E3E7EF;--ink:#141A2E;--body:#3D4660;--dim:#6B7490;
+  --orange:#F26B0F;--blue:#1F6FD6;--violet:#7A4DD8;--green:#1E9E5A;--teal:#0F8B8D;--red:#D93448;
+  --floor:#FFF6E6;--grass:#DDEFD6;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Nunito,system-ui,-apple-system,'Segoe UI',sans-serif}
+button,select{font-family:inherit}
+header{display:flex;align-items:center;gap:20px;flex-wrap:wrap;padding:18px 28px;background:var(--panel);border-bottom:1px solid var(--line)}
+.logo{font-size:26px;font-weight:900;letter-spacing:-.5px}
+.logo span{color:var(--orange)}
+.sub{color:var(--dim);font-weight:700;font-size:15px}
+#levels{display:flex;gap:8px;margin-left:auto;flex-wrap:wrap}
+.lv{border:2px solid var(--line);background:var(--panel);border-radius:12px;min-width:48px;padding:4px 8px;cursor:pointer;font-weight:900;font-size:16px;color:var(--body);line-height:1.1}
+.lv small{display:block;font-size:10px;color:var(--orange);letter-spacing:-1px;min-height:12px}
+.lv.on{border-color:var(--orange);background:#FFF1E6;color:var(--ink)}
+main{display:grid;grid-template-columns:minmax(380px,560px) 230px minmax(320px,1fr);gap:20px;padding:20px 28px;align-items:start}
+@media (max-width:1100px){main{grid-template-columns:1fr 1fr}#stage{grid-column:1/-1}}
+@media (max-width:700px){main{grid-template-columns:1fr;padding:14px}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:18px}
+.ttl{font-size:13px;font-weight:900;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin:0 0 10px}
+#mission h2{margin:0 0 6px;font-size:24px;font-weight:900}
+#mission p{margin:0;color:var(--body);font-size:16px;line-height:1.45}
+#hintBox{display:none;margin-top:10px;background:#FFF6E6;border:1px dashed var(--orange);border-radius:12px;padding:10px 12px;font-size:15px;color:var(--body)}
+.minibtn{margin-top:10px;border:0;background:none;color:var(--orange);font-weight:900;cursor:pointer;padding:0;font-size:15px}
+#boardWrap{margin-top:16px;display:flex;justify-content:center}
+#board{position:relative;border-radius:16px;overflow:hidden;box-shadow:0 0 0 3px #E8EDE3}
+.cell{position:absolute;display:flex;align-items:center;justify-content:center;user-select:none}
+.cell.f{background:var(--floor);box-shadow:inset 0 0 0 1px #F1E3C8}
+.cell.w{background:var(--grass)}
+.cell .e{transition:transform .35s,opacity .35s}
+.cell.got .e{transform:scale(0) rotate(180deg);opacity:0}
+#robot{position:absolute;display:flex;align-items:center;justify-content:center;transition:left var(--dur) ease-in-out,top var(--dur) ease-in-out,transform var(--dur) ease-in-out;z-index:2}
+#robot.shake{animation:shake .4s}
+@keyframes shake{0%,100%{translate:0}25%{translate:-6px}75%{translate:6px}}
+#boom{position:absolute;z-index:3;font-size:34px;display:none;pointer-events:none}
+#status{margin-top:14px;min-height:46px;display:flex;align-items:center;gap:10px;background:#F1F3F7;border-radius:12px;padding:10px 14px;font-weight:800;font-size:16px;color:var(--body)}
+#status.ok{background:#E3F4EA;color:var(--green)}
+#status.bad{background:#FBE6E9;color:var(--red)}
+.controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px}
+.btn{border:0;border-radius:14px;padding:12px 18px;font-weight:900;font-size:16px;cursor:pointer;display:inline-flex;gap:8px;align-items:center}
+.btn.go{background:var(--green);color:#fff;box-shadow:0 4px 0 #157544}
+.btn.go:active{transform:translateY(3px);box-shadow:0 1px 0 #157544}
+.btn.sec{background:#EEF1F6;color:var(--ink)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.speed{display:flex;align-items:center;gap:6px;color:var(--dim);font-weight:800;font-size:14px;margin-left:auto}
+/* bloques */
+.blk{border-radius:12px;color:#fff;font-weight:800;font-size:15px;margin:6px 0;cursor:grab;user-select:none;position:relative}
+.blk .head{display:flex;align-items:center;gap:8px;padding:10px 12px;min-height:44px}
+.blk .ic{font-size:18px;width:22px;text-align:center}
+.blk select{border:0;border-radius:8px;padding:3px 4px;font-weight:900;font-size:15px;color:var(--ink);background:#fff;cursor:pointer}
+.blk.move{background:var(--blue);box-shadow:0 3px 0 #17549f}
+.blk.left,.blk.right{background:var(--violet);box-shadow:0 3px 0 #5a35a8}
+.blk.repeat{background:var(--orange);box-shadow:0 3px 0 #b84e08}
+.blk.until{background:var(--teal);box-shadow:0 3px 0 #0a6466}
+.blk.if{background:var(--green);box-shadow:0 3px 0 #157544}
+.blk.c{padding-bottom:12px}
+.blk .mid{padding:6px 12px;font-weight:900;opacity:.95}
+.blk .list{margin:0 10px 0 22px;background:rgba(255,255,255,.88);border-radius:10px;padding:2px 8px;min-height:50px}
+.blk .del{margin-left:auto;border:0;background:rgba(255,255,255,.25);color:#fff;width:26px;height:26px;border-radius:8px;cursor:pointer;font-weight:900;flex:none}
+.blk .del:hover{background:rgba(255,255,255,.45)}
+.blk.dragging{opacity:.35}
+.blk.running>.head{outline:4px solid #FFD43B;outline-offset:2px;border-radius:12px}
+.blk.crashed>.head{outline:4px solid var(--red);outline-offset:2px;border-radius:12px}
+.blk.ins{box-shadow:0 -5px 0 var(--orange)!important}
+.list.ins-end{box-shadow:inset 0 -5px 0 var(--orange)}
+.list:empty::before{content:'Suelta o agrega bloques aquí';display:block;color:var(--dim);font-weight:700;font-size:13px;padding:14px 4px;text-align:center}
+.list.target{outline:3px dashed var(--orange);outline-offset:2px}
+#palette .pal{cursor:pointer}
+#palette .pal:hover{filter:brightness(1.07)}
+#palette.trash{outline:3px dashed var(--red);background:#FFF0F2}
+#palette .note{font-size:13px;color:var(--dim);font-weight:700;margin-top:10px;line-height:1.4}
+#ws{min-height:420px}
+#main{min-height:360px;border-radius:12px;padding:6px}
+#ws .top{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+#count{margin-left:auto;font-weight:900;font-size:15px;padding:4px 10px;border-radius:10px;background:#EEF1F6;color:var(--body)}
+#count.over{background:#FBE6E9;color:var(--red)}
+.tip{font-size:13px;color:var(--dim);font-weight:700;margin:0 0 6px;line-height:1.4}
+.locked .blk, .locked .pal{pointer-events:none}
+/* modal */
+#modal{position:fixed;inset:0;background:rgba(20,26,46,.45);display:none;align-items:center;justify-content:center;z-index:20;padding:20px}
+#modal .box{background:#fff;border-radius:24px;padding:30px 34px;max-width:440px;width:100%;text-align:center;animation:pop .35s}
+@keyframes pop{from{transform:scale(.8);opacity:0}}
+#modal h3{margin:0;font-size:30px;font-weight:900}
+#mStars{font-size:44px;margin:12px 0;letter-spacing:6px}
+#mStars .off{filter:grayscale(1);opacity:.3}
+#modal p{color:var(--body);font-size:16px;line-height:1.45;margin:0 0 18px}
+.conf{position:fixed;top:-20px;width:10px;height:16px;z-index:30;pointer-events:none;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(720deg)}}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <div class="logo">🤖 Robi <span>· retos de lógica</span></div>
+    <div class="sub">Arma programas con bloques y guía a Robi hasta la meta. ¡Sin escribir código!</div>
+  </div>
+  <div id="levels"></div>
+</header>
+
+<main>
+  <section id="stage" class="card">
+    <div id="mission">
+      <p class="ttl" id="lvTag">Reto 1</p>
+      <h2 id="lvName"></h2>
+      <p id="lvText"></p>
+      <button class="minibtn" id="hintBtn">💡 Ver pista</button>
+      <div id="hintBox"></div>
+    </div>
+    <div id="boardWrap"><div id="board"></div></div>
+    <div id="status">👋 Arma tu programa y presiona ▶ Ejecutar.</div>
+    <div class="controls">
+      <button class="btn go" id="runBtn">▶ Ejecutar</button>
+      <button class="btn sec" id="resetBtn">↺ Reiniciar</button>
+      <label class="speed">🐢 <input type="range" id="speed" min="1" max="5" value="3"> 🐇</label>
+    </div>
+  </section>
+
+  <section id="palette" class="card">
+    <p class="ttl">Bloques</p>
+    <div id="palList"></div>
+    <div class="note">Toca un bloque para agregarlo, o arrástralo a tu programa. Arrastra un bloque aquí para borrarlo.</div>
+  </section>
+
+  <section id="ws" class="card">
+    <div class="top"><p class="ttl" style="margin:0">Tu programa</p><span id="count">0 bloques</span><button class="btn sec" id="clearBtn" style="padding:6px 12px;font-size:14px">🗑 Borrar todo</button></div>
+    <p class="tip">La línea naranja punteada marca dónde se agregan los bloques nuevos. Toca un espacio para elegirlo.</p>
+    <div id="mainHolder"></div>
+  </section>
+</main>
+
+<div id="modal"><div class="box">
+  <h3 id="mTitle">¡Reto superado! 🎉</h3>
+  <div id="mStars"></div>
+  <p id="mText"></p>
+  <button class="btn go" id="nextBtn">Siguiente reto ▶</button>
+  <button class="btn sec" id="stayBtn" style="margin-top:8px">Quedarme aquí</button>
+</div></div>
+
+<script>
+// ---------- Niveles ----------
+const LEVELS=[
+ {name:'Primeros pasos',dir:'E',blocks:['move'],max:0,best:4,
+  text:'Lleva a Robi hasta la bandera 🏁. Cada bloque «Avanzar» lo mueve una casilla hacia donde mira.',
+  hint:'Cuenta las casillas que hay entre Robi y la bandera.',
+  grid:['#######','#######','#S...G#','#######','#######']},
+ {name:'A la vuelta de la esquina',dir:'E',blocks:['move','left','right'],max:0,best:7,
+  text:'Ahora hay que girar. Ojo: izquierda y derecha son desde el punto de vista de Robi.',
+  hint:'Avanza hasta la esquina, gira a la izquierda y sigue avanzando.',
+  grid:['#######','#####G#','#####.#','#S....#','#######']},
+ {name:'Zigzag',dir:'E',blocks:['move','left','right'],max:0,best:13,
+  text:'Sube la escalera hasta la bandera. Necesitarás varios giros.',
+  hint:'Avanzar, girar a la izquierda, avanzar, girar a la derecha… ¿notas que algo se repite?',
+  grid:['#######','####.G#','###..##','##..###','#S.####','#######']},
+ {name:'¡Repetir!',dir:'E',blocks:['move','left','right','repeat'],max:2,best:2,
+  text:'Llega a la bandera usando como máximo 2 bloques. El bloque «Repetir» hace lo que tiene adentro varias veces.',
+  hint:'Pon un «Avanzar» dentro de «Repetir» y elige cuántas veces.',
+  grid:['#########','#########','#S.....G#','#########','#########']},
+ {name:'Escalera con bucle',dir:'E',blocks:['move','left','right','repeat'],max:6,best:6,
+  text:'Una escalera más alta, pero ahora con máximo 6 bloques. Encuentra el patrón de un escalón.',
+  hint:'Primero un «Avanzar». Luego repite 4 veces: izquierda, avanzar, derecha, avanzar.',
+  grid:['########','#####.G#','####..##','###..###','##..####','#S.#####','########']},
+ {name:'Ronda de estrellas',dir:'E',blocks:['move','left','right','repeat'],max:4,best:4,
+  text:'Recoge las 4 estrellas ⭐ con máximo 4 bloques. Aquí no hay bandera: gana al tener todas.',
+  hint:'Un lado del cuadrado es «avanzar 3 veces y girar». ¡Puedes poner un Repetir dentro de otro Repetir!',
+  grid:['######','#S..*#','#*##.#','#.##.#','#*..*#','######']},
+ {name:'¿Hay camino?',dir:'E',blocks:['move','left','right','repeat','until','if'],max:4,best:4,
+  text:'Robi no sabe cuántas casillas hay hasta cada esquina. Con «Si hay camino» puede decidir solo. Máximo 4 bloques.',
+  hint:'Repetir hasta llegar a 🏁 → Si hay camino adelante: avanzar. Si no: girar a la izquierda.',
+  grid:['########','##.....#','##.###.#','##..G#.#','######.#','#S.....#','########']},
+ {name:'El laberinto',dir:'E',blocks:['move','left','right','repeat','until','if'],max:8,best:7,
+  text:'El reto final: un laberinto con caminos sin salida. Haz que Robi lo resuelva solo, con máximo 8 bloques.',
+  hint:'Regla de la mano derecha: si hay camino a la derecha, gira a la derecha y avanza. Si no: si hay camino adelante, avanza; si no, gira a la izquierda.',
+  grid:['#########','#S..#...#','###.#.#.#','#...#.#.#','#.###.#.#','#.....#.#','#.###.###','#...#..G#','#########']}
+];
+const DR=[-1,0,1,0],DC=[0,1,0,-1],DIRS={N:0,E:1,S:2,W:3},LIMIT=600;
+const DIRTXT={ahead:'adelante',left:'a la izquierda',right:'a la derecha'};
+const DECOR=['🌳','🌲','🪨','🌷','🌳','🍄'];
+
+// ---------- Estado ----------
+let L=0,prog=[],target='main',uid=1,running=false,stop=false,S=null,drag=null;
+const saved=(()=>{try{return JSON.parse(localStorage.getItem('robi-progreso')||'{}')}catch(e){return{}}})();
+function save(){try{localStorage.setItem('robi-progreso',JSON.stringify(saved))}catch(e){}}
+const $=id=>document.getElementById(id);
+
+// ---------- Modelo del programa ----------
+const NEW={move:()=>({type:'move'}),left:()=>({type:'left'}),right:()=>({type:'right'}),
+  repeat:()=>({type:'repeat',n:3,body:[]}),until:()=>({type:'until',body:[]}),
+  if:()=>({type:'if',dir:'ahead',body:[],else:[]})};
+function mk(t){const n=NEW[t]();n.id=uid++;return n}
+function findNode(id,list=prog){for(const n of list){if(n.id===id)return n;for(const k of['body','else'])if(n[k]){const f=findNode(id,n[k]);if(f)return f}}return null}
+function findList(key){if(key==='main')return prog;const[id,part]=key.split(':');const n=findNode(+id);return n?n[part]:null}
+function removeNode(id,list=prog){const i=list.findIndex(n=>n.id===id);if(i >= 0)return list.splice(i,1)[0];for(const n of list)for(const k of['body','else'])if(n[k]){const r=removeNode(id,n[k]);if(r)return r}return null}
+function contains(node,id){if(node.id===id)return true;return['body','else'].some(k=>node[k]&&node[k].some(c=>contains(c,id)))}
+function count(list){return list.reduce((s,n)=>s+1+(n.body?count(n.body):0)+(n.else?count(n.else):0),0)}
+
+// ---------- Ejecución ----------
+function initState(i){
+  const lv=LEVELS[i],st={r:0,c:0,d:DIRS[lv.dir],rot:DIRS[lv.dir]*90,stars:new Set(),goal:null,done:false,won:false,steps:0};
+  lv.grid.forEach((row,r)=>[...row].forEach((ch,c)=>{if(ch==='S'){st.r=r;st.c=c}if(ch==='G')st.goal=[r,c];if(ch==='*')st.stars.add(r+','+c)}));
+  st.grid=lv.grid;return st;
+}
+function free(st,r,c){return r >= 0&&c >= 0&&r < st.grid.length&&c < st.grid[0].length&&st.grid[r][c]!=='#'}
+function pathFree(st,dir){const d=(st.d+(dir==='left'?3:dir==='right'?1:0))%4;return free(st,st.r+DR[d],st.c+DC[d])}
+function* exec(list,st){
+  for(const n of list){
+    if(st.done)return;
+    if(n.type==='move')yield{a:'move',id:n.id};
+    else if(n.type==='left')yield{a:'turn',d:-1,id:n.id};
+    else if(n.type==='right')yield{a:'turn',d:1,id:n.id};
+    else if(n.type==='repeat'){for(let i=0;i < n.n;i++){yield{a:'loop',id:n.id,i,n:n.n};yield* exec(n.body,st);if(st.done)return}}
+    else if(n.type==='until'){while(!st.done){yield{a:'loop',id:n.id};yield* exec(n.body,st)}}
+    else if(n.type==='if'){const ok=pathFree(st,n.dir);yield{a:'check',id:n.id,ok,dir:n.dir};yield* exec(ok?n.body:n.else,st)}
+  }
+}
+function apply(st,a){
+  st.steps++;
+  if(st.steps > LIMIT){st.done=true;return'limit'}
+  if(a.a==='move'){
+    const nr=st.r+DR[st.d],nc=st.c+DC[st.d];
+    if(!free(st,nr,nc)){st.done=true;return'crash'}
+    st.r=nr;st.c=nc;let ev='move';
+    if(st.stars.delete(nr+','+nc))ev='star';
+    if(st.stars.size===0&&(!st.goal||(st.goal[0]===nr&&st.goal[1]===nc))){st.done=st.won=true;return'win'}
+    return ev;
+  }
+  if(a.a==='turn'){st.d=(st.d+a.d+4)%4;st.rot+=a.d*90;return'turn'}
+  return a.a;
+}
+function simulate(i,p){const st=initState(i);for(const a of exec(p,st)){const ev=apply(st,a);if(st.done)return ev}return st.won?'win':'end'}
+window.simulate=simulate;
+
+// ---------- Tablero ----------
+let CS=64;
+function buildBoard(){
+  const lv=LEVELS[L],rows=lv.grid.length,cols=lv.grid[0].length,b=$('board');
+  const avail=Math.min(500,$('boardWrap').clientWidth||500);
+  CS=Math.max(34,Math.min(68,Math.floor(avail/cols)));
+  b.style.width=cols*CS+'px';b.style.height=rows*CS+'px';b.innerHTML='';
+  lv.grid.forEach((row,r)=>[...row].forEach((ch,c)=>{
+    const d=document.createElement('div');d.className='cell '+(ch==='#'?'w':'f');d.id='c'+r+'_'+c;
+    Object.assign(d.style,{left:c*CS+'px',top:r*CS+'px',width:CS+'px',height:CS+'px',fontSize:Math.round(CS*.55)+'px'});
+    let e='';
+    if(ch==='#'){const h=(r*7+c*13)%9;if(h < 3)e=DECOR[(r+c)%DECOR.length]}
+    if(ch==='G')e='🏁';if(ch==='*')e='⭐';
+    if(ch==='S'){d.style.background='#FFE9D2'}
+    if(e)d.innerHTML='<span class="e">'+e+'</span>';
+    b.appendChild(d);
+  }));
+  const rb=document.createElement('div');rb.id='robot';rb.style.width=rb.style.height=CS+'px';
+  rb.innerHTML=robotSVG(CS*.82);b.appendChild(rb);
+  const bm=document.createElement('div');bm.id='boom';bm.textContent='💥';b.appendChild(bm);
+}
+function robotSVG(s){return`<svg width="${s}" height="${s}" viewBox="0 0 100 100" aria-label="Robi"><polygon points="50,2 60,16 40,16" fill="#F26B0F"/><line x1="50" y1="16" x2="50" y2="24" stroke="#141A2E" stroke-width="4"/><rect x="18" y="24" width="64" height="56" rx="16" fill="#1F6FD6" stroke="#141A2E" stroke-width="4"/><rect x="28" y="36" width="44" height="22" rx="10" fill="#fff"/><circle cx="40" cy="47" r="5" fill="#141A2E"/><circle cx="60" cy="47" r="5" fill="#141A2E"/><path d="M38 66 Q50 74 62 66" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round"/><rect x="8" y="44" width="10" height="20" rx="4" fill="#F26B0F"/><rect x="82" y="44" width="10" height="20" rx="4" fill="#F26B0F"/><rect x="28" y="80" width="14" height="12" rx="3" fill="#141A2E"/><rect x="58" y="80" width="14" height="12" rx="3" fill="#141A2E"/></svg>`}
+function drawRobot(instant){
+  const rb=$('robot');if(!rb)return;
+  if(instant){rb.style.transition='none'}
+  rb.style.left=S.c*CS+'px';rb.style.top=S.r*CS+'px';rb.style.transform='rotate('+S.rot+'deg)';
+  if(instant){rb.offsetHeight;rb.style.transition=''}
+}
+function resetBoard(){
+  stop=true;S=initState(L);
+  document.querySelectorAll('.cell.got').forEach(c=>c.classList.remove('got'));
+  $('boom').style.display='none';drawRobot(true);clearMarks();
+}
+
+// ---------- Paleta y programa ----------
+function headHTML(n){
+  switch(n.type){
+    case'move':return'<span class="ic">⬆</span>Avanzar';
+    case'left':return'<span class="ic">↺</span>Girar a la izquierda';
+    case'right':return'<span class="ic">↻</span>Girar a la derecha';
+    case'repeat':return'<span class="ic">🔁</span>Repetir <select data-f="n">'+[2,3,4,5,6,7,8,9,10].map(v=>`<option${v===n.n?' selected':''}>${v}</option>`).join('')+'</select> veces';
+    case'until':return'<span class="ic">🔁</span>Repetir hasta llegar a 🏁';
+    case'if':return'<span class="ic">❓</span>Si hay camino <select data-f="dir">'+Object.entries(DIRTXT).map(([k,v])=>`<option value="${k}"${k===n.dir?' selected':''}>${v}</option>`).join('')+'</select>';
+  }
+}
+function renderPalette(){
+  const pl=$('palList');pl.innerHTML='';
+  LEVELS[L].blocks.forEach(t=>{
+    const n=NEW[t]();const d=document.createElement('div');d.className='blk pal '+t;d.draggable=true;d.dataset.t=t;
+    d.innerHTML='<div class="head">'+headHTML(n).replace(/<select[^]*?<\/select>/g,t==='repeat'?'<b>N</b>':'<b>…</b>')+'</div>';
+    pl.appendChild(d);
+  });
+}
+function renderList(list,key){
+  const el=document.createElement('div');el.className='list'+(target===key?' target':'');el.dataset.key=key;
+  if(key==='main')el.id='main';
+  list.forEach(n=>el.appendChild(renderNode(n)));return el;
+}
+function renderNode(n){
+  const b=document.createElement('div');b.className='blk '+n.type+(n.body?' c':'');b.dataset.id=n.id;b.draggable=true;
+  const h=document.createElement('div');h.className='head';h.innerHTML=headHTML(n)+'<button class="del" title="Quitar">✕</button>';b.appendChild(h);
+  if(n.body){
+    b.appendChild(renderList(n.body,n.id+':body'));
+    if(n.type==='if'){const m=document.createElement('div');m.className='mid';m.textContent='si no';b.appendChild(m);b.appendChild(renderList(n.else,n.id+':else'))}
+  }
+  return b;
+}
+function renderProgram(){
+  if(!findList(target))target='main';
+  const h=$('mainHolder');h.innerHTML='';h.appendChild(renderList(prog,'main'));
+  const c=count(prog),mx=LEVELS[L].max;
+  $('count').textContent=mx?`${c} / ${mx} bloques`:`${c} bloque${c===1?'':'s'}`;
+  $('count').classList.toggle('over',!!mx&&c > mx);
+}
+function addBlock(t){
+  if(running)return;
+  const list=findList(target)||prog,n=mk(t);list.push(n);
+  if(n.body)target=n.id+':body';
+  renderProgram();
+}
+
+// ---------- Interacción ----------
+$('palList').addEventListener('click',e=>{const p=e.target.closest('.pal');if(p)addBlock(p.dataset.t)});
+$('ws').addEventListener('click',e=>{
+  if(running)return;
+  if(e.target.classList.contains('del')){const id=+e.target.closest('.blk').dataset.id;removeNode(id);renderProgram();return}
+  if(e.target.tagName==='SELECT')return;
+  const head=e.target.closest('.blk.c > .head');
+  if(head){target=head.parentElement.dataset.id+':body';renderProgram();return}
+  const list=e.target.closest('.list');
+  if(list&&e.target===list){target=list.dataset.key;renderProgram();return}
+  if(e.target.id==='mainHolder'||e.target.id==='ws'){target='main';renderProgram()}
+});
+$('ws').addEventListener('change',e=>{
+  const f=e.target.dataset.f;if(!f)return;const n=findNode(+e.target.closest('.blk').dataset.id);
+  n[f]=f==='n'?+e.target.value:e.target.value;
+});
+function clearIns(){document.querySelectorAll('.ins').forEach(x=>x.classList.remove('ins'));document.querySelectorAll('.ins-end').forEach(x=>x.classList.remove('ins-end'));$('palette').classList.remove('trash')}
+function dropSpot(e){
+  const list=e.target.closest&&e.target.closest('.list');if(!list||!$('ws').contains(list))return null;
+  const key=list.dataset.key;
+  if(drag.id&&key!=='main'){const own=+key.split(':')[0],node=findNode(drag.id);if(node&&contains(node,own))return null}
+  const kids=[...list.children].filter(c=>c.classList.contains('blk')&&!c.classList.contains('dragging'));
+  const ref=kids.find(c=>{const r=c.getBoundingClientRect();return e.clientY < r.top+r.height/2});
+  return{list,key,ref};
+}
+document.addEventListener('dragstart',e=>{
+  if(running){e.preventDefault();return}
+  if(e.target.tagName==='SELECT'){e.preventDefault();return}
+  const p=e.target.closest&&e.target.closest('.pal');
+  if(p)drag={t:p.dataset.t};
+  else{const b=e.target.closest&&e.target.closest('.blk');if(b&&$('ws').contains(b)){drag={id:+b.dataset.id};setTimeout(()=>b.classList.add('dragging'))}}
+  if(drag){e.dataTransfer.setData('text/plain','robi');e.dataTransfer.effectAllowed='move'}
+});
+document.addEventListener('dragover',e=>{
+  if(!drag)return;clearIns();
+  if(drag.id&&e.target.closest&&e.target.closest('#palette')){e.preventDefault();$('palette').classList.add('trash');return}
+  const s=dropSpot(e);if(!s)return;e.preventDefault();
+  if(s.ref)s.ref.classList.add('ins');else s.list.classList.add('ins-end');
+});
+document.addEventListener('drop',e=>{
+  if(!drag)return;e.preventDefault();
+  if(drag.id&&e.target.closest&&e.target.closest('#palette')){removeNode(drag.id)}
+  else{
+    const s=dropSpot(e);
+    if(s){
+      const refId=s.ref?+s.ref.dataset.id:null;
+      const node=drag.t?mk(drag.t):removeNode(drag.id);
+      const arr=findList(s.key);
+      if(node&&arr){let i=refId==null?arr.length:arr.findIndex(n=>n.id===refId);if(i < 0)i=arr.length;arr.splice(i,0,node);if(drag.t&&node.body)target=node.id+':body'}
+    }
+  }
+  drag=null;clearIns();renderProgram();
+});
+document.addEventListener('dragend',()=>{drag=null;clearIns();document.querySelectorAll('.dragging').forEach(x=>x.classList.remove('dragging'))});
+
+// ---------- Correr con animación ----------
+const SPEEDS=[0,750,520,360,220,110];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function clearMarks(){document.querySelectorAll('.running,.crashed').forEach(x=>x.classList.remove('running','crashed'))}
+function mark(id,cls){clearMarks();const el=document.querySelector(`#ws .blk[data-id="${id}"]`);if(el)el.classList.add(cls||'running')}
+function say(msg,kind){const s=$('status');s.textContent=msg;s.className=kind||''}
+function setRunning(v){running=v;$('runBtn').disabled=v;$('clearBtn').disabled=v;$('ws').classList.toggle('locked',v);$('palette').classList.toggle('locked',v)}
+async function play(){
+  if(running)return;
+  const mx=LEVELS[L].max,c=count(prog);
+  if(!c){say('Tu programa está vacío. Agrega bloques primero 🙂','bad');return}
+  if(mx&&c > mx){say(`Este reto permite máximo ${mx} bloques y tienes ${c}. ¡Busca un patrón!`,'bad');return}
+  resetBoard();await sleep(60);stop=false;setRunning(true);
+  const st=S;let ev='end',lastId=null;
+  for(const a of exec(prog,st)){
+    if(stop)break;
+    const delay=SPEEDS[+$('speed').value];
+    $('robot').style.setProperty('--dur',Math.round(delay*.85)+'ms');
+    lastId=a.id;mark(a.id);ev=apply(st,a);
+    if(ev==='move'||ev==='star'||ev==='win'){drawRobot();if(ev!=='move'){const el=$('c'+st.r+'_'+st.c);setTimeout(()=>el&&el.classList.add('got'),delay*.6)}}
+    if(ev==='turn')drawRobot();
+    if(a.a==='move'&&ev!=='crash')say(ev==='star'?'⭐ ¡Estrella recogida!':'⬆ Robi avanza');
+    if(a.a==='turn')say(a.d < 0?'↺ Robi gira a la izquierda':'↻ Robi gira a la derecha');
+    if(a.a==='check')say(`❓ ¿Hay camino ${DIRTXT[a.dir]}? ${a.ok?'Sí ✔':'No ✘'}`);
+    if(a.a==='loop')say(a.n?`🔁 Repetición ${a.i+1} de ${a.n}`:'🔁 ¿Ya llegó a la meta? Todavía no, repite');
+    await sleep(a.a==='loop'?delay*.45:a.a==='check'?delay*.7:delay);
+    if(st.done)break;
+  }
+  setRunning(false);
+  if(stop&&!st.done){say('⏹ Detenido.');return}
+  if(ev==='win'){clearMarks();say('🎉 ¡Lo lograste!','ok');win();return}
+  if(ev==='crash'){
+    mark(lastId,'crashed');const rb=$('robot');rb.classList.remove('shake');rb.offsetHeight;rb.classList.add('shake');
+    const bm=$('boom');bm.style.display='block';bm.style.left=(st.c+DC[st.d]*.5)*CS+CS*.2+'px';bm.style.top=(st.r+DR[st.d]*.5)*CS+CS*.15+'px';
+    say('💥 ¡Robi chocó! Mira el bloque marcado en rojo.','bad');return}
+  clearMarks();
+  if(ev==='limit'){say('😵 Robi dio demasiados pasos. ¿Hay un bucle que nunca termina?','bad');return}
+  say(st.stars.size?`Robi terminó, pero le faltan ${st.stars.size} estrella${st.stars.size > 1?'s':''} ⭐`:'Robi terminó el programa, pero no llegó a la bandera 🏁. ¡Revisa los pasos!','bad');
+}
+function win(){
+  const c=count(prog),best=LEVELS[L].best,stars=c <= best?3:c <= best+2?2:1;
+  saved[L]=Math.max(saved[L]||0,stars);save();renderLevels();
+  $('mStars').innerHTML=[0,1,2].map(i=>`<span class="${i < stars?'':'off'}">⭐</span>`).join('');
+  const last=L===LEVELS.length-1;
+  $('mTitle').textContent=last?'¡Completaste todos los retos! 🏆':'¡Reto superado! 🎉';
+  $('mText').textContent=`Usaste ${c} bloque${c===1?'':'s'}. `+(stars===3?'¡Solución perfecta!':`Se puede resolver con ${best}. ¿Te animas a mejorarlo?`);
+  $('nextBtn').style.display=last?'none':'';
+  $('modal').style.display='flex';confetti();
+}
+function confetti(){
+  const cols=['#F26B0F','#1F6FD6','#1E9E5A','#7A4DD8','#FFD43B'];
+  for(let i=0;i < 70;i++){const s=document.createElement('span');s.className='conf';s.style.left=Math.random()*100+'vw';s.style.background=cols[i%5];s.style.animationDuration=1.6+Math.random()*1.6+'s';s.style.animationDelay=Math.random()*.4+'s';document.body.appendChild(s);setTimeout(()=>s.remove(),3800)}
+}
+
+// ---------- Niveles ----------
+function renderLevels(){
+  $('levels').innerHTML=LEVELS.map((lv,i)=>`<button class="lv${i===L?' on':''}" data-i="${i}" title="${lv.name}">${i+1}<small>${'★'.repeat(saved[i]||0)}</small></button>`).join('');
+}
+$('levels').addEventListener('click',e=>{const b=e.target.closest('.lv');if(b)loadLevel(+b.dataset.i)});
+function loadLevel(i){
+  stop=true;setRunning(false);L=i;prog=[];target='main';
+  const lv=LEVELS[i];
+  $('lvTag').textContent=`Reto ${i+1} de ${LEVELS.length}`+(lv.max?` · máximo ${lv.max} bloques`:'');
+  $('lvName').textContent=lv.name;$('lvText').textContent=lv.text;
+  $('hintBox').textContent=lv.hint;$('hintBox').style.display='none';$('hintBtn').textContent='💡 Ver pista';
+  renderLevels();renderPalette();renderProgram();buildBoard();resetBoard();
+  say('👋 Arma tu programa y presiona ▶ Ejecutar.');
+}
+$('hintBtn').onclick=()=>{const v=$('hintBox').style.display==='block';$('hintBox').style.display=v?'none':'block';$('hintBtn').textContent=v?'💡 Ver pista':'💡 Ocultar pista'};
+$('runBtn').onclick=play;
+$('resetBtn').onclick=()=>{stop=true;setTimeout(()=>{resetBoard();say('↺ Robi volvió al inicio. Tu programa sigue aquí.')},30)};
+$('clearBtn').onclick=()=>{if(running)return;prog=[];target='main';renderProgram();resetBoard();say('🗑 Programa borrado.')};
+$('nextBtn').onclick=()=>{$('modal').style.display='none';loadLevel(Math.min(L+1,LEVELS.length-1))};
+$('stayBtn').onclick=()=>{$('modal').style.display='none'};
+let rz;addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(()=>{if(!running){buildBoard();resetBoard()}},200)});
+loadLevel(0);
+</script>
+</body>
+</html>
